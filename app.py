@@ -50,19 +50,17 @@ def parse_german_number(text: str) -> Decimal:
     return Decimal(text)
 
 def calculate(eur_value: Decimal, rate: Decimal):
-    chf_value = eur_value * rate
-    fee_025 = chf_value * Decimal("0.0025")
-    fee_factor = fee_025 * Decimal("1.5")
-    minimum_applies = fee_factor < Decimal("500")
-    fee_chf = max(fee_factor, Decimal("500"))
+    nominal_value_chf = eur_value * Decimal("1.5")
+    calculated_fee_chf = nominal_value_chf * Decimal("0.0025")
+    minimum_applies = calculated_fee_chf < Decimal("500")
+    fee_chf = max(calculated_fee_chf, Decimal("500"))
     fee_eur = fee_chf / rate
 
     return {
         "eur_value": eur_value,
         "rate": rate,
-        "chf_value": chf_value,
-        "fee_025": fee_025,
-        "fee_factor": fee_factor,
+        "nominal_value_chf": nominal_value_chf,
+        "calculated_fee_chf": calculated_fee_chf,
         "minimum_applies": minimum_applies,
         "fee_chf": fee_chf,
         "fee_eur": fee_eur,
@@ -85,7 +83,7 @@ except Exception as exc:
 
 with st.form("calculation_form"):
     eur_input = st.text_input(
-        "Bemessungswert in EUR",
+        "Nominalwert in EUR",
         value="1.000.000,00",
         help="Beispiel: 1.000.000,00",
     )
@@ -105,28 +103,25 @@ if submitted:
 
         st.markdown(
             f"""
-**1. Bemessungswert in EUR**  
+**1. Nominalwert in EUR**  
 {money(r['eur_value'])} EUR
 
-**2. Umrechnung in CHF**  
-{money(r['eur_value'])} EUR × {r['rate']} CHF/EUR  
-= **{money(r['chf_value'])} CHF**
+**2. Multiplikation des Nominalwerts mit dem Faktor 1,5**  
+{money(r['eur_value'])} EUR × 1,5  
+= **{money(r['nominal_value_chf'])} CHF**  
+(keine Umrechnung von EUR in CHF)
 
 **3. Berechnung von 0,25 %**  
-{money(r['chf_value'])} CHF × 0,25 %  
-= **{money(r['fee_025'])} CHF**
-
-**4. Multiplikation mit dem Faktor 1,5**  
-{money(r['fee_025'])} CHF × 1,5  
-= **{money(r['fee_factor'])} CHF**
+{money(r['nominal_value_chf'])} CHF × 0,25 %  
+= **{money(r['calculated_fee_chf'])} CHF**
 """
         )
 
         if r["minimum_applies"]:
             st.markdown(
                 f"""
-**5. Prüfung des Mindestbetrags von 500 CHF**  
-Berechneter Betrag: {money(r['fee_factor'])} CHF  
+**4. Prüfung des Mindestbetrags von 500 CHF**  
+Berechneter Betrag: {money(r['calculated_fee_chf'])} CHF  
 Mindestbetrag: 500,00 CHF  
 → Der Mindestbetrag ist anzusetzen.
 
@@ -136,8 +131,8 @@ Mindestbetrag: 500,00 CHF
         else:
             st.markdown(
                 f"""
-**5. Prüfung des Mindestbetrags von 500 CHF**  
-Berechneter Betrag: {money(r['fee_factor'])} CHF  
+**4. Prüfung des Mindestbetrags von 500 CHF**  
+Berechneter Betrag: {money(r['calculated_fee_chf'])} CHF  
 Mindestbetrag: 500,00 CHF  
 → Der Mindestbetrag greift nicht.
 
@@ -147,7 +142,7 @@ Mindestbetrag: 500,00 CHF
 
         st.markdown(
             f"""
-**6. Rückrechnung in EUR**  
+**5. Umrechnung des Ergebnisses in EUR**  
 {money(r['fee_chf'])} CHF ÷ {r['rate']} CHF/EUR  
 = **{money(r['fee_eur'])} EUR**
 """
